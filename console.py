@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" Module containing console functionality """
+""" module containing console functionality """
 
 import cmd
 import sys
@@ -20,7 +20,7 @@ class HBNBCommand(cmd.Cmd):
     HBNBCommand - command line interface implementation
     """
 
-    available_classes = {
+    classes = {
         "BaseModel": BaseModel,
         "User": User,
         "Place": Place,
@@ -29,55 +29,56 @@ class HBNBCommand(cmd.Cmd):
         "Review": Review,
         "Amenity": Amenity,
     }
+    # intro = "Welcome to the hbnb console"
     prompt = "(hbnb) "
     file = None
 
-    def precmd(self, command_line):
-        """Initial configurations before executing commands"""
+    def precmd(self, line):
+        """initial configurations"""
         if not sys.stdin.isatty():
             print()
-        if "." in command_line:
-            args = command_line.split(".")
-            class_name = args[0]
-            commands = args[1].replace(".", " ").replace(",", " ")
-            commands = commands.replace("(", " ").replace(")", " ")
-            commands = commands.split()
-            command_line = commands[0] + " " + class_name
-            for i in range(1, len(commands)):
-                commands[i] = commands[i].replace('"', "").replace("'", "")
-                command_line = command_line + " " + commands[i]
-        return cmd.Cmd.precmd(self, command_line)
+        if "." in line:
+            args = line.split(".")
+            cls = args[0]
+            cmds = args[1].replace(".", " ").replace(",", " ")
+            cmds = cmds.replace("(", " ").replace(")", " ")
+            cmds = cmds.split()
+            line = cmds[0] + " " + cls
+            for i in range(1, len(cmds)):
+                cmds[i] = cmds[i].replace('"', "").replace("'", "")
+                line = line + " " + cmds[i]
+        return cmd.Cmd.precmd(self, line)
 
-    def do_quit(self, command_line):
+    def do_quit(self, line):
         """Quit command to exit the program"""
         self.close()
         quit()
 
     def emptyline(self):
-        """Do nothing if an empty line is entered"""
+        """Do nothing if empty line specified"""
         pass
 
-    def do_EOF(self, command_line):
+    def do_EOF(self, line):
         """Handle End-of-File"""
         print()
         return True
 
-    def do_create(self, command_line):
+    def do_create(self, line):
         """Creates an object of any available class"""
-        if not command_line:
+        if not line:
             print("** class name missing **")
             return
-        elif command_line not in HBNBCommand.available_classes:
+        elif line not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
 
-        new_instance = HBNBCommand.available_classes[command_line]()
+        new_instance = HBNBCommand.classes[line]()
         storage.save()
-        print(new_instance.unique_id)
+        print(new_instance.id)
 
-    def do_show(self, command_line):
-        """Shows the string representation of an object instance"""
-        result = self.check_arguments(command_line)
+    def do_show(self, line):
+        """Shows string representation of an object instance"""
+        result = self.test_arguments(line)
 
         if result[0]:
             class_key = result[1] + "." + result[2]
@@ -86,24 +87,24 @@ class HBNBCommand(cmd.Cmd):
             except KeyError:
                 print("** no instance found **")
 
-    def do_all(self, command_line):
+    def do_all(self, line):
         """Prints all instances created or all instances of a certain class"""
-        if command_line and command_line not in HBNBCommand.available_classes:
+        if line and line not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
 
-        instance_list = []
+        lst = []
         for key, value in storage._FileStorage__objects.items():
-            if command_line:
-                if key.partition(".")[0] == command_line:
-                    instance_list.append(str(storage._FileStorage__objects[key]))
+            if line:
+                if key.partition(".")[0] == line:
+                    lst.append(str(storage._FileStorage__objects[key]))
             else:
-                instance_list.append(str(storage._FileStorage__objects[key]))
-        print(instance_list)
+                lst.append(str(storage._FileStorage__objects[key]))
+        print(lst)
 
-    def do_destroy(self, command_line):
+    def do_destroy(self, line):
         """Deletes an instance based on class name or id"""
-        result = self.check_arguments(command_line)
+        result = self.test_arguments(line)
 
         if result[0]:
             class_key = result[1] + "." + result[2]
@@ -113,12 +114,12 @@ class HBNBCommand(cmd.Cmd):
             else:
                 print("** no instance found **")
 
-    def do_update(self, command_line):
+    def do_update(self, line):
         """Updates an instance based on class name and id by
         adding or updating attribute"""
-        result = self.check_arguments(command_line)
+        result = self.test_arguments(line)
         if result[0]:
-            tokens = command_line.split()
+            tokens = line.split()
             if len(tokens) < 4:
                 if len(tokens) == 2:
                     print("** attribute name missing **")
@@ -128,38 +129,38 @@ class HBNBCommand(cmd.Cmd):
                     return
             class_key = result[1] + "." + result[2]
             if class_key in storage._FileStorage__objects.keys():
-                instance = storage._FileStorage__objects[class_key]
-                setattr(instance, tokens[2], tokens[3])
+                fs = storage._FileStorage__objects[class_key]
+                setattr(fs, tokens[2], tokens[3])
                 storage.save()
             else:
                 print("** no instance found **")
 
-    def do_count(self, command_line):
+    def do_count(self, line):
         """Counts number of instances of a class"""
-        if not command_line:
+        if not line:
             print("** class name missing **")
             return
-        if command_line not in HBNBCommand.available_classes:
+        if line not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
         count = 0
         for key in storage._FileStorage__objects.keys():
-            if key.split(".")[0] == command_line:
+            if key.split(".")[0] == line:
                 count = count + 1
         print(count)
 
-    def check_arguments(self, command_line):
-        """Check class existence, class name, and instance id"""
-        new_split = command_line.partition(" ")
-        class_name = new_split[0]
-        class_id = new_split[2]
+    def test_arguments(self, line):
+        """test class existence, class name and instance id"""
+        new = line.partition(" ")
+        class_name = new[0]
+        class_id = new[2]
         success = 1
 
         if not class_name:
             print("** class name missing **")
             success = 0
 
-        elif class_name not in HBNBCommand.available_classes:
+        elif class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             success = 0
 
@@ -167,13 +168,14 @@ class HBNBCommand(cmd.Cmd):
             print("** instance id missing **")
             success = 0
 
+        # guard aganist trailing whitespace
         if class_id and " " in class_id:
             class_id = class_id.partition(" ")[0]
 
         return (success, class_name, class_id)
 
     def close(self):
-        """Finalize"""
+        """finalize"""
         if self.file:
             self.file.close()
             self.file = None
@@ -181,4 +183,3 @@ class HBNBCommand(cmd.Cmd):
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
-
